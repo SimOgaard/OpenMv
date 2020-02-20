@@ -193,6 +193,14 @@ while True:
         # Vid preplanned route checka av om hur du kör stämmer med väg markörernas roadtype
         # Vid nytt territorium 
 
+    # Ta fram väg typen och skicka värden. När är det tilfälligt att köra getRoadType?
+    # När fyra blåa objekt syns, när linjerna är nya värden
+    # När är det tilfälligt att hugga vägen i sten?
+    # När De fyra objekten inte längre syns i x antal frames
+    # Då ska den köra transferValues 1 gång
+    
+
+
     roadTypeChanging = getRoadTypeWhen(img, new)
     if roadTypeChanging:
         oldRoadTypeChanging = roadTypeChanging
@@ -205,6 +213,7 @@ while True:
         transferValues(roadType, coordinate, bothV, bothX)
         # Publice roadtype when roadtypechanging is false only once
         roadType = [0, 0, 0, 0]
+
 
     # Visuellt
     outlineObjects(img, uraniumRods, (0, 255, 0), 2, False)
