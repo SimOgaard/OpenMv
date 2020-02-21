@@ -57,7 +57,7 @@ ROADTYPE_THRESHOLDS = 0.5
 THETA_TILT = 11
 PEDESTRIAN_CROSSING_PIXELS = 2500
 
-### Uart ### uart_A.write("Lamao")
+### Uart ###
 fm.register(board_info.PIN15, fm.fpioa.UART1_TX, force=True)
 uart_A = UART(UART.UART1, 115200,8,0,0, timeout=1000, read_buf_len=4096)
 
@@ -79,7 +79,7 @@ def getYoloObjects(img_):
 
 def laneAppropriateImg(img_, roi_):
     img_copy = img_.to_grayscale(copy = True, rgb_channel = (0/1/2))
-    
+
     lights = getColoredObjects(img_copy, GRAY_THRESHOLDS, 500, 4, 2, 5, ALL_ROI)
     if lights:
         l = [obj.pixels() for obj in lights]
@@ -129,10 +129,11 @@ def getRoadType(roadType_, bothV_, leftCrossing_, rightCrossing_):
 
     return roadType_
 
-# def 
+# def
 
 def transferValues(*values_):
     print(values_)
+    uart_A.write(str(values_))
 
 # def useClaw():
 
@@ -198,14 +199,14 @@ while True:
         # Om det närmsta objektet är mellan y1 och y2 stanna bilen och plocka upp biten
         # Kör bilen mellan linjerna
         # Vid preplanned route checka av om hur du kör stämmer med väg markörernas roadtype
-        # Vid nytt territorium 
+        # Vid nytt territorium
 
     # Ta fram väg typen och skicka värden. När är det tilfälligt att köra getRoadType?
     # När fyra blåa objekt syns, när linjerna är nya värden
     # När är det tilfälligt att hugga vägen i sten?
     # När De fyra objekten inte längre syns i x antal frames
     # Då ska den köra transferValues 1 gång
-    
+
 
 
     roadTypeChanging = getRoadTypeWhen(img, new)
