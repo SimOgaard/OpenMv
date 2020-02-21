@@ -11,6 +11,8 @@ sensor.set_gainceiling(16)
 sensor.set_vflip(False)
 sensor.set_hmirror(False)
 
+sensor.set_windowing((224, 224))
+
 sensor.run(1)
 sensor.skip_frames(time = 500)
 
@@ -22,7 +24,9 @@ a = kpu.init_yolo2(task, 0.3, 0.3, 5, anchor)
 YOLO_ROI = [48, 8, 224, 224]
 
 def getYoloObjects(img_):
-    yoloObj = kpu.run_yolo2(task, img_.copy(roi=YOLO_ROI, copy_to_fb=False).to_rgb565(copy=False))
+    yoloObj = kpu.run_yolo2(task, img_)
+    # yoloObj = kpu.run_yolo2(task, img_.copy(roi=YOLO_ROI, copy_to_fb=False))
+    # yoloObj = kpu.run_yolo2(task, img_.copy(roi=YOLO_ROI, copy_to_fb=False).to_rgb565(copy=False))
     return yoloObj if yoloObj else []
 
 def outlineObjects(img_, objects_, color_, border_, fill_):

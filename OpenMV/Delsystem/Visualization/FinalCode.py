@@ -15,6 +15,9 @@
 
 ### Biblotek ###
 import sensor, lcd, math
+from fpioa_manager import fm
+from machine import UART
+from board import board_info
 
 ### Sensor ###
 lcd.init()
@@ -53,6 +56,10 @@ ROADTYPE_THRESHOLDS = 0.5
 
 THETA_TILT = 11
 PEDESTRIAN_CROSSING_PIXELS = 2500
+
+### Uart ### uart_A.write("Lamao")
+fm.register(board_info.PIN15, fm.fpioa.UART1_TX, force=True)
+uart_A = UART(UART.UART1, 115200,8,0,0, timeout=1000, read_buf_len=4096)
 
 ### Yolo2 ###
 # import KPU as kpu
