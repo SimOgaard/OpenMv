@@ -44,6 +44,7 @@ bothX = sensor.width()/2
 matrix = [[0,0,0],[0,0,0],[0,0,0]]
 rotation = 0
 oldRoadTypeChanging = False
+skipped = 0
 
 ### Variabler ###
 RED_THRESHOLDS = [(0, 100, 127, 47, 127, -128)]
@@ -117,19 +118,29 @@ def getRoadTypeWhen(img_, new_):
     roadJoints = getColoredObjects(img_, ROAD_JOINTS_THRESHOLDS, 500, 4, 2, 5, ALL_ROI)
     return True if len(roadJoints) >= 4 and new_ else False
 
-def getRoadType(roadType_, bothV_, leftCrossing_, rightCrossing_):
-    roadType_[3] = roadType_[3]+1
+def getRoadType(img_, roadType_, bothV_, leftCrossing_, rightCrossing_, new_, skipped_):
+    if getRoadTypeWhen(img_, new_):
+        # print("lol")
+        roadType_[3] = roadType_[3]+1
+        if leftCrossing_ or bothV_ <= 90-THETA_TILT:
+            roadType_[0] = roadType_[0]+1
+        if rightCrossing_ or bothV_ >= 90+THETA_TILT:
+            roadType_[1] = roadType_[1]+1
+        if bothV_ > 90-THETA_TILT and bothV_ < 90+THETA_TILT:
+            roadType_[2] = roadType_[2]+1
+        skipped_ = 0
+    else:
+        skipped_ += 1
+    return roadType_, skipped_
 
-    if leftCrossing_ or bothV_ <= 90-THETA_TILT:
-        roadType_[0] = roadType_[0]+1
-    if rightCrossing_ or bothV_ >= 90+THETA_TILT:
-        roadType_[1] = roadType_[1]+1
-    if bothV_ > 90-THETA_TILT and bothV_ < 90+THETA_TILT:
-        roadType_[2] = roadType_[2]+1
-
-    return roadType_
-
-# def
+def lockRoadTypeWhen(roadType_, skipped_, matrix_):
+    if skipped_ > 5 and roadType_ != [0, 0, 0, 0]:
+        roadType_ = [True if x/roadType_[3] >= ROADTYPE_THRESHOLDS else False for x in roadType_]
+        matrix_ = [[0,roadType_[2],0],[roadType_[0],1,roadType_[1]],[0,roadType_[3],0]]        
+        transferValues(roadType_)
+        roadType_ = [0, 0, 0, 0]
+        skipped_ = 0
+    return roadType_, skipped_, matrix_
 
 def transferValues(*values_):
     print(values_)
@@ -141,7 +152,6 @@ def transferValues(*values_):
 
 # def Turtle():
 #     if legoGubbar:
-
 
 ### Visuellt ###
 def outlineObjects(img_, objects_, color_, border_, fill_):
@@ -201,27 +211,9 @@ while True:
         # Vid preplanned route checka av om hur du kör stämmer med väg markörernas roadtype
         # Vid nytt territorium
 
-    # Ta fram väg typen och skicka värden. När är det tilfälligt att köra getRoadType?
-    # När fyra blåa objekt syns, när linjerna är nya värden
-    # När är det tilfälligt att hugga vägen i sten?
-    # När De fyra objekten inte längre syns i x antal frames
-    # Då ska den köra transferValues 1 gång
-
-
-
-    roadTypeChanging = getRoadTypeWhen(img, new)
-    if roadTypeChanging:
-        oldRoadTypeChanging = roadTypeChanging
-        roadType = getRoadType(roadType, bothV, leftCrossing, rightCrossing)
-    if roadTypeChanging != oldRoadTypeChanging: # if roadtype[3] >= ItterationsNeccesary, så att om den 1 frame ser 3 objekt och nästa ser 4 räkna som 1 frame
-        oldRoadTypeChanging = roadTypeChanging
-        transferValues(roadType, coordinate, bothV, bothX)
-        roadType = [True if x/roadType[3] >= ROADTYPE_THRESHOLDS else False for x in roadType]
-        matrix = [[0,roadType[2],0],[roadType[0],1,roadType[1]],[0,roadType[3],0]]
-        transferValues(roadType, coordinate, bothV, bothX)
-        # Publice roadtype when roadtypechanging is false only once
-        roadType = [0, 0, 0, 0]
-
+    roadType, skipped = getRoadType(img, roadType, bothV, leftCrossing, rightCrossing, new, skipped)
+    
+    roadType, skipped, matrix = lockRoadTypeWhen(roadType, skipped, matrix)
 
     # Visuellt
     outlineObjects(img, uraniumRods, (0, 255, 0), 2, False)
