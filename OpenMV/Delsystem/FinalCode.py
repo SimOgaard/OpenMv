@@ -14,7 +14,7 @@
     # Publice roadtype when roadtypechanging is false only once
 
 ### Biblotek ###
-import sensor, lcd, math
+import sensor, lcd, math, json
 from fpioa_manager import fm
 from machine import UART
 from board import board_info
@@ -35,32 +35,33 @@ sensor.run(1)
 ### Konstanter ###
 ALL_ROI = [0, 0, sensor.width(), sensor.height()]
 YOLO_ROI = [48, 8, 224, 224]
-LEFT_LANE_ROI = [0, 0, int(sensor.width()/3), sensor.height()]
-RIGHT_LANE_ROI = [int(sensor.width()/1.5), 0, sensor.width(), sensor.height()]
 coordinate = [0, 0]
 roadType = [0, 0, 0, 0]
 bothV = 90
 bothX = sensor.width()/2
-matrix = [[0,0,0],[0,0,0],[0,0,0]]
-rotation = 0
-oldRoadTypeChanging = False
+matrix = [0, 0, 0, 0]
 skipped = 0
 
 ### Variabler ###
 RED_THRESHOLDS = [(0, 100, 127, 47, 127, -128)]
 GREENE_THRESHOLDS = [(0, 100, -20, -128, -128, 127)]
-BLUE_THRESHOLDS = [(0, 100, 127, -128, -10, -128)]
-ROAD_JOINTS_THRESHOLDS = [(0, 100, 127, -128, -10, -128)]
-GRAY_THRESHOLDS = [(165, 255)]
-ALPHA_DARKEN = 90
-ROADTYPE_THRESHOLDS = 0.5
+BLUE_THRESHOLDS = [(0, 100, -128, 127, -128, -15)]
+ROAD_JOINTS_THRESHOLDS = [(0, 100, -128, 127, -128, -15)]
+GRAY_THRESHOLDS = [(175, 255)]
 
+ALPHA_DARKEN = 85
+ROADTYPE_THRESHOLDS = 0.5
 THETA_TILT = 11
 PEDESTRIAN_CROSSING_PIXELS = 2500
+skipAmount = 4
+
+LEFT_LANE_ROI = [0, 0, int(sensor.width()/3), sensor.height()]
+RIGHT_LANE_ROI = [int(sensor.width()/1.5), 0, sensor.width(), sensor.height()]
+MIDDLE_LANE_ROI = [0, int(sensor.height()/1.5), sensor.width(), sensor.height()]
 
 ### Uart ###
 fm.register(board_info.PIN15, fm.fpioa.UART1_TX, force=True)
-uart_A = UART(UART.UART1, 115200,8,0,0, timeout=1000, read_buf_len=4096)
+uart_A = UART(UART.UART1, 115200, 8, 0, 0, timeout=1000, read_buf_len=4096)
 
 ### Yolo2 ###
 # import KPU as kpu
@@ -92,11 +93,14 @@ def laneAppropriateImg(img_, roi_):
         outlineObjects(img_copy, roi, (0, 0, 0), 1, True)
     return img_copy
 
-def getLaneLine(img_, threshold_, pixelthreshold_, robust_, xstride_, ystride_, roi_, margin_):
+def getPedestrianCrossing(img_, threshold_, xstride_, ystride_, roi_, margin_):
     pedestrianCrossings = getColoredObjects(img_, threshold_, 0, xstride_, ystride_, margin_, roi_)
     crossingArea = sum([obj.pixels() for obj in pedestrianCrossings])
+    return True if crossingArea >= PEDESTRIAN_CROSSING_PIXELS else False
+
+def getLaneLine(img_, threshold_, pixelthreshold_, robust_, xstride_, ystride_, roi_):
     laneLine = img_.get_regression((threshold_), pixels_threshold = pixelthreshold_, robust = robust_, x_stride = xstride_, y_stride = ystride_, roi = roi_)
-    return laneLine, True if crossingArea >= PEDESTRIAN_CROSSING_PIXELS else False
+    return laneLine
 
 def getClosestToCenter(object_):
     if object_:
@@ -118,40 +122,36 @@ def getRoadTypeWhen(img_, new_):
     roadJoints = getColoredObjects(img_, ROAD_JOINTS_THRESHOLDS, 500, 4, 2, 5, ALL_ROI)
     return True if len(roadJoints) >= 4 and new_ else False
 
-def getRoadType(img_, roadType_, bothV_, leftCrossing_, rightCrossing_, new_, skipped_):
+def getRoadType(img_, roadType_, bothV_, leftCrossing_, rightCrossing_, middleCrossing_, new_, skipped_):
     if getRoadTypeWhen(img_, new_):
-        # print("lol")
         roadType_[3] = roadType_[3]+1
-        if leftCrossing_ or bothV_ <= 90-THETA_TILT:
+        if not leftCrossing_ and not rightCrossing_ and middleCrossing_:
             roadType_[0] = roadType_[0]+1
-        if rightCrossing_ or bothV_ >= 90+THETA_TILT:
             roadType_[1] = roadType_[1]+1
-        if bothV_ > 90-THETA_TILT and bothV_ < 90+THETA_TILT:
-            roadType_[2] = roadType_[2]+1
+        else: 
+            if leftCrossing_ or bothV_ <= 90-THETA_TILT:
+                roadType_[0] = roadType_[0]+1
+            if rightCrossing_ or bothV_ >= 90+THETA_TILT:
+                roadType_[1] = roadType_[1]+1
+            if bothV_ > 90-THETA_TILT and bothV_ < 90+THETA_TILT:
+                roadType_[2] = roadType_[2]+1
         skipped_ = 0
     else:
         skipped_ += 1
     return roadType_, skipped_
 
 def lockRoadTypeWhen(roadType_, skipped_, matrix_):
-    if skipped_ > 5 and roadType_ != [0, 0, 0, 0]:
+    if skipped_ > skipAmount and roadType_ != [0, 0, 0, 0]:
         roadType_ = [True if x/roadType_[3] >= ROADTYPE_THRESHOLDS else False for x in roadType_]
-        matrix_ = [[0,roadType_[2],0],[roadType_[0],1,roadType_[1]],[0,roadType_[3],0]]        
-        transferValues(roadType_)
+        matrix_ = roadType_
         roadType_ = [0, 0, 0, 0]
         skipped_ = 0
     return roadType_, skipped_, matrix_
 
 def transferValues(*values_):
-    print(values_)
-    uart_A.write(str(values_))
-
-# def useClaw():
-
-# def drive():
-
-# def Turtle():
-#     if legoGubbar:
+    JSON = json.dumps(values_)
+    uart_A.write(JSON)
+    print(JSON)
 
 ### Visuellt ###
 def outlineObjects(img_, objects_, color_, border_, fill_):
@@ -189,29 +189,20 @@ while True:
 
     # # Yolo
     # legoGubbar = getYoloObjects(img)
+    legoGubbar = False
 
     # Väg
     laneAppropiate = laneAppropriateImg(img, [allObjects])
-    leftLaneLine, leftCrossing = getLaneLine(laneAppropiate, GRAY_THRESHOLDS, 20, True, 4, 2, LEFT_LANE_ROI, 50)
-    rightLaneLine, rightCrossing = getLaneLine(laneAppropiate, GRAY_THRESHOLDS, 20, True, 4, 2, RIGHT_LANE_ROI, 50)
+    leftLaneLine = getLaneLine(laneAppropiate, GRAY_THRESHOLDS, 20, True, 4, 2, LEFT_LANE_ROI)
+    rightLaneLine = getLaneLine(laneAppropiate, GRAY_THRESHOLDS, 20, True, 4, 2, RIGHT_LANE_ROI)
+
+    leftCrossing = getPedestrianCrossing(laneAppropiate, GRAY_THRESHOLDS, 4, 2, LEFT_LANE_ROI, 50)
+    rightCrossing = getPedestrianCrossing(laneAppropiate, GRAY_THRESHOLDS, 4, 2, RIGHT_LANE_ROI, 50)
+    middleCrossing = getPedestrianCrossing(laneAppropiate, GRAY_THRESHOLDS, 4, 2, MIDDLE_LANE_ROI, 50)
 
     bothV, bothX, new = getSteerValues([leftLaneLine, rightLaneLine], bothV, bothX)
 
-    # Create two classes one that is: Turtle:
-        # Om en legogubbe syns stanna och blinka
-        # Om fyra vägMarkers syns stanna bilen och regristera vägen sedan skicka
-        # Om det närmsta objektet är mellan y1 och y2 stanna bilen och plocka upp biten
-        # Kör bilen mellan linjerna
-
-    # Rabbit:
-        # Om en legogubbe syns blinka
-        # Om fyra vägMarkers syns skicka när de inte längre syns med ett interval av säkerhet
-        # Om det närmsta objektet är mellan y1 och y2 stanna bilen och plocka upp biten
-        # Kör bilen mellan linjerna
-        # Vid preplanned route checka av om hur du kör stämmer med väg markörernas roadtype
-        # Vid nytt territorium
-
-    roadType, skipped = getRoadType(img, roadType, bothV, leftCrossing, rightCrossing, new, skipped)
+    roadType, skipped = getRoadType(img, roadType, bothV, leftCrossing, rightCrossing, middleCrossing, new, skipped)
     
     roadType, skipped, matrix = lockRoadTypeWhen(roadType, skipped, matrix)
 
@@ -221,9 +212,9 @@ while True:
     outlineObjects(img, blueRods, (0, 0, 255), 2, False)
 
     markPoint(img, closestObject, 3, (255, 255, 0), 1, True)
-
     drawLine(img, [leftLaneLine, rightLaneLine], (0, 0, 0), 2)
+    drawMap(img, [[0,matrix[2],0],[matrix[0],1,matrix[1]],[0,matrix[3],0]], (-1, -1), 5)
 
-    drawMap(img, matrix, (-1, -1), 5)
+    transferValues(legoGubbar, closestObject, matrix, bothV, bothX)
 
-    lcd.display(img)
+    lcd.display(laneAppropiate)
