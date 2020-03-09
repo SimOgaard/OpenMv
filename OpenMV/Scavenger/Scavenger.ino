@@ -2,51 +2,66 @@
 #include "EspMQTTClient.h"  //Hantering av hämtning/skickning av data (Mqtt)
 #include <ArduinoJson.h>    //Hantering av strängar i json format
 #include <SoftwareSerial.h> //Hantering av UART
+#include <Servo.h>          //Hantering av Servo
 
 // Pins //
 SoftwareSerial ESPserial(3, 1); // Rx, Tx pin
+Servo Servo1;                   // Definerar servot
 #define D1 0                    // Motor Dir pin
 #define Pw 5                    // Motor pin
 #define He 4                    // Hallelement input pin
 
 // Variabler //
-String OWNER="A";                                                         // (Sträng) Ändra till S eller O beroende på vems bil
+String OWNER="A";                                                         // (Sträng) Ändra beroende på vems bil
 unsigned long previousMillis, currentMillis = 0;                          // (Unsigned long) för användningen av millis (pga datatypens storlek)
-const int maxPwm = 1023;                                                  // (Constant int) Högsta tillgängliga motor värdet 
-const int minPwm = 0;                                                     //      -||-      Minsta           -||-
-float RPM, Ki, Kp, e, Pwm, KiArea, Kd, DistanceDriven, Dist;              // (Float) För högre presition av inskickta samt uträknade variabler/värden 
-int Rev;                                                                  // (Int) För heltal
-String payload, payloadArray, Task;                                       // (Sträng) Strängar som vi kan Jsonifiera
+const int RoadDist = 500;                                                 //      -||-      Längden på en väg
+String payload, readString;                                               // (Sträng) Strängar som vi kan Jsonifiera
 int LedState = LOW;                                                       // (Int) Lampans status
 
 // Mqtt //
 void onConnectionEstablished();                 // Krävs för att bibloteket ska fungera när denna har körts klart är du säker på att du är ansluten
 
 EspMQTTClient client(                           // Alla parametrar för att anslutningen ska funka, ip, namn, lösen osv
-  "ABB_Indgym_Guest",                           //
-  "Welcome2abb",                                //
-  "maqiatto.com",                               //
-  1883,                                         //
-  "oliver.witzelhelmin@abbindustrigymnasium.se",//
-  "vroom",                                      //
-  "broom_broomO",                               // Ändra till A eller B beroende på bil
-  onConnectionEstablished,                      //
-  true,                                         //
-  true                                          //
+  "ABB_Indgym_Guest",                           // SSD
+  "Welcome2abb",                                // SSD lösen
+  "maqiatto.com",                               // Mqtt ip
+  1883,                                         // Mqtt port
+  "simon.ogaardjozic@abbindustrigymnasium.se",  // Namn
+  "scavenger",                                  // Lösen
+  "scavengerA",                                 // Client Namn
+  onConnectionEstablished,
+  true,
+  true
 );
 
 void onConnectionEstablished() {
-  client.publish("oliver.witzelhelmin@abbindustrigymnasium.se/broom_broom"+OWNER, OWNER + " aint groomin he bauta vroomin");  // Vid lyckad anslutning skicka medelandet till representerande adress
-  client.subscribe("oliver.witzelhelmin@abbindustrigymnasium.se/vroom_vroom"+OWNER, [] (const String & payload) {
-    StaticJsonBuffer<500> JsonBuffer;                                             // Skapar en buffer, hur mycket minne som vårt blivand jsonobject får använda
-    JsonArray& root = JsonBuffer.parseArray(payload);                             // Skapar ett jsonobject av datan payload som vi kallar root
-    if(root.success() && root[0] == OWNER || root.success() && root[0] == "A" ) { // Om ovan lyckas och Jsonobjekten är pointerat till "A" (alla) eller "S"/"O" (representativ till variabeln "OWNER")
-      Task = root[1];//0-2 vänster höger eller follow line                                                             // Konstanterar variablernas värden (Dem behlålls samma till yttligare inskickning av data)
-      currentMillis = millis(), previousMillis = millis();                        // Reset av värden
-      Rev = 0, RPM = 0, e = 0, Pwm = 0, KiArea = 0, DistanceDriven = 0;           //     -||-
+  client.publish("simon.ogaardjozic@abbindustrigymnasium.se/Scavenger", OWNER + " ready");              // Vid lyckad anslutning skicka medelandet till representerande adress
+  client.subscribe("simon.ogaardjozic@abbindustrigymnasium.se/Scavenger", [] (const String & payload) { // Prenumererar till "simon.og..." tillåter motagning av data
+    StaticJsonBuffer<500> JsonBuffer;                                                                   // Skapar en buffer, hur mycket minne som vårt blivand jsonobject får använda
+    JsonArray& root = JsonBuffer.parseArray(payload);                                                   // Skapar ett jsonobject av datan payload som vi kallar root
+    if(root.success() && root[0] == OWNER || root.success() && root[0] == "A" ) {                       // Om ovan lyckas och Jsonobjekten är pointerat till "A" eller "B" (representativ till variabeln "OWNER")
+      if (root[1] == 0){                                                                                // root[1] konstanterar uppgiften värdena ör 0 = follow, 1 = left, 2 = right, 3 = drop
+        State = FollowLine;                                                                                
+      } else if (root[1] == 1) {                                                                                
+        State = Turn;                                                                                
+      } else if (root[1] == 2) {                                                                                
+        State = Turn;                                                                                
+      } else if (root[1] == 3) {
+        State = Dispose;
+      }
+
+      // itterera igenom en lista med uppgifter [0,1,2,1,0,0,1] gå igenom en för en.
+      
+      // Change State!!!
+    
     }
   });
 }
+
+// States //
+typedef enum State {                  // Skapar enumeration kallad State
+  Stopped, FollowLine, Claw, Dispose  // Alla cases
+};
 
 // Setup //
 void setup() {
@@ -54,30 +69,58 @@ void setup() {
   attachInterrupt(digitalPinToInterrupt(He), HtoL, FALLING);              // Digitala pin med interuppt till pin "He" funktionen "HtoL" ska köras vid "Falling" högt värde till lågt 
   pinMode(Pw, OUTPUT), pinMode(D1, OUTPUT), pinMode(LED_BUILTIN, OUTPUT); // Konfigurerar pins att bete sig som outputs
   digitalWrite(D1, HIGH);                                                 // Skriver till pin "D1" hög volt (3.3v) 
+  Servo1.attach(13);                                                      // Sätter servo pin
+  State = Stopped;                                                        // Går till casen Stopped
 }
 
 // Loop //
 void loop() {
+  client.loop();              // När den kallas tillåter du klienten att processera inkommande medelanden, skicka data och bibehålla anslutningen:
+
+  switch (State) {
+    case Stopped:
+      analogWrite(Pw, 0);                             // Skriver till pin "Pw" värdet 0 (0 representerar lågt)
+      currentMillis = millis();                       // Sätter variabeln currentMillis till millis();
+      if (currentMillis > previousMillis + BlinkTime){// Om currentMillis är större än förra + parametern BlinkTime:
+        previousMillis = currentMillis;               //    Sätter variabeln previousMillis till currentMillis
+        LedState = !LedState;                         //    "Nottar Ledstate", sätter LedState till motsatta värdet det var innan
+        digitalWrite(LED_BUILTIN, LedState);          //    Skriver till inbyggda led lampan LedState (3.3v eller 0v) 
+      }
+      continue;
+
+    case FollowLine:
+      if (SerialData(false)) {
+        Servo1.write(int(obj[3]));
+        analogWrite(Pw, obj[4]);
+      }
+      if (DistanceDriven >= RoadDist){
+        DistanceDriven = 0;
+        State = Stopped;
+      }
+      continue;
+
+  }
+
   while (Serial.available()) {
     delay(1);
     char c = Serial.read();
     readString += c; 
   }
-  
+
   if (readString.length()) {
     StaticJsonBuffer<256> jsonBuffer;
     JsonArray& obj = jsonBuffer.parseArray(readString);
+    Serial.println(readString);
     readString="";
   }
 
+  Servo1.write(1023/180*int(obj[3]));
+
   if (obj[0]) {
     stopped(500);
-  } else if (obj[1]){
-    
   }
-
   
-  
+/*  
   client.loop();              // När den kallas tillåter du klienten att processera inkommande medelanden, skicka data och bibehålla anslutningen:
   if(!client.isConnected()){  // Om funtkionen "client.isConnected()" get False, då har klienten tappat anslutningen
     stopped(500);             //    Anropa funktionen stopped() med parametern Blinktime sätt till 500 ms för att kunna förtydliga felet utan serialmonitor medelande
@@ -86,8 +129,10 @@ void loop() {
   } else {                    // Annars:
     stopped(2500);            //    Anropa funktionen stopped() med parametern Blinktime sätt till 500 ms för att kunna förtydliga felet utan serialmonitor medelande
   }
+*/
 }
 
+/*
 // Funktioner "Använd data" //
 void calculateTerms(){
   Pwm = 0;                    // Resetar Pwm så den framtida additionen av värdet proportionellTerm() blir som =, och inte +=
@@ -107,6 +152,7 @@ float integrationTerm(){
 float deriveringTerm() {
   return 0;                   // Returnerar 0, hann inte med deriverandeTermen
 }
+*/
 
 // Funktion "Kontrolera hastighet" //
 float speedControll(){
@@ -119,6 +165,7 @@ float speedControll(){
   }
 }
 
+/*
 // Funktion "Skicka data" //
 void sendJSON(){
   payload += (",\"DistanceDriven\":\"" + String(DistanceDriven) + "\",\"Pw\":\"" + String(Pwm) + "\",\"CalculationTime\":\"" + String(millis()-previousMillis) + "}}"); // Lägger till Strängen till payload i jsonformat
@@ -126,9 +173,20 @@ void sendJSON(){
   Serial.println(payload);                        // Skriver till serialmonitor vårat fina mer informationrika data
   client.publish("oliver.witzelhelmin@abbindustrigymnasium.se/broom_broom"+OWNER, payloadArray);  // Skickar våran konsentrerade data
 }
+*/
+
+boolean SerialData(boolean NewData){
+  while (Serial.available()) {
+    NewData = true;
+    delay(1);
+    char c = Serial.read();
+    readString += c; 
+  }
+  return NewData;
+}
 
 // Funktion "Stannad" //
-void stopped(int BlinkTime){
+void Blink(int BlinkTime){
   analogWrite(Pw, 0);                             // Skriver till pin "Pw" värdet 0 (0 representerar lågt)
   currentMillis = millis();                       // Sätter variabeln currentMillis till millis();
   if (currentMillis > previousMillis + BlinkTime){// Om currentMillis är större än förra + parametern BlinkTime:

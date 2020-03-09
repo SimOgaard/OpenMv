@@ -14,13 +14,13 @@ sensor.run(1)
 
 
 
-RED_THRESHOLDS = [(0, 100, 127, 47, 127, -128)]
+RED_THRESHOLDS = [(0, 100, 127, 20, 127, -128)]
 GREENE_THRESHOLDS = [(0, 100, -20, -128, -128, 127)]
 BLUE_THRESHOLDS = [(0, 100, 127, -128, -10, -128)]
 ROAD_JOINTS_THRESHOLDS = [(0, 100, 127, -128, -10, -128)]
-GRAY_THRESHOLDS = [(165, 255)]
+GRAY_THRESHOLDS = [(200, 255)]
 
-ALPHA_DARKEN = 90
+ALPHA_DARKEN = 57
 ROADTYPE_THRESHOLDS = 0.5
 THETA_TILT = 11
 PEDESTRIAN_CROSSING_PIXELS = 2500
@@ -88,16 +88,16 @@ def getRoadType(img_, roadType_, bothV_, leftCrossing_, rightCrossing_, middleCr
     if not leftCrossing_ and not rightCrossing_ and middleCrossing_:
         roadType_[0] = 1
         roadType_[1] = 1
-    else: 
+    else:
         if leftCrossing_ or bothV_ <= 90-THETA_TILT:
             roadType_[0] = 1
         if rightCrossing_ or bothV_ >= 90+THETA_TILT:
             roadType_[1] = 1
         if bothV_ > 90-THETA_TILT and bothV_ < 90+THETA_TILT:
-            roadType_[2] = 1 
+            roadType_[2] = 1
     matrix_ = [[0,roadType_[2],0],[roadType_[0],1,roadType_[1]],[0,roadType_[3],0]]
     return roadType_, matrix_
-    
+
 def outlineObjects(img_, objects_, color_, border_, fill_):
     for object in objects_:
         img_.draw_rectangle(object.rect(), color_, border_, fill_)
@@ -171,14 +171,14 @@ def crosswalkImage(img_):
     imgCopy.draw_string(int((LEFT_CROSS_ROI[0]+LEFT_CROSS_ROI[2])/2),int((LEFT_CROSS_ROI[1]+LEFT_CROSS_ROI[3])/2), str(leftCrossing), color =(255,0,0),mono_space=False, scale = 2)
     imgCopy.draw_string(int((RIGHT_CROSS_ROI[0]+RIGHT_CROSS_ROI[2])/2),int((RIGHT_CROSS_ROI[1]+RIGHT_CROSS_ROI[3])/2), str(rightCrossing), color =(255,0,0),mono_space=False, scale=2)
     imgCopy.draw_string(int((MIDDLE_CROSS_ROI[0]+MIDDLE_CROSS_ROI[2])/2),int((MIDDLE_CROSS_ROI[1]+MIDDLE_CROSS_ROI[3])/2), str(middleCrossing), color =(255,0,0),mono_space=False, scale=2)
-    
+
     return imgCopy
 
 imgur = sensor.snapshot()
 
 while True:
     img = sensor.snapshot()
-    
+
     uraniumRods = getColoredObjects(img, GREENE_THRESHOLDS, 500, 4, 2, 5, ALL_ROI)
     redRods = getColoredObjects(img, RED_THRESHOLDS, 500, 4, 2, 5, ALL_ROI)
     blueRods = getColoredObjects(img, BLUE_THRESHOLDS, 500, 4, 2, 5, ALL_ROI)
@@ -187,22 +187,22 @@ while True:
     closestObject = getClosestToCenter(allObjects)
 
     laneAppropiate = laneAppropriateImg(img, [allObjects])
-    leftLaneLine = getLaneLine(laneAppropiate, GRAY_THRESHOLDS, 20, True, 4, 2, LEFT_LANE_ROI)
-    rightLaneLine = getLaneLine(laneAppropiate, GRAY_THRESHOLDS, 20, True, 4, 2, RIGHT_LANE_ROI)
+    # leftLaneLine = getLaneLine(laneAppropiate, GRAY_THRESHOLDS, 20, True, 4, 2, LEFT_LANE_ROI)
+    # rightLaneLine = getLaneLine(laneAppropiate, GRAY_THRESHOLDS, 20, True, 4, 2, RIGHT_LANE_ROI)
 
-    leftCrossing = getPedestrianCrossing(laneAppropiate, GRAY_THRESHOLDS, 4, 2, LEFT_LANE_ROI, 50)
-    rightCrossing = getPedestrianCrossing(laneAppropiate, GRAY_THRESHOLDS, 4, 2, RIGHT_LANE_ROI, 50)
-    middleCrossing = getPedestrianCrossing(laneAppropiate, GRAY_THRESHOLDS, 4, 2, MIDDLE_LANE_ROI, 50)
+    # leftCrossing = getPedestrianCrossing(laneAppropiate, GRAY_THRESHOLDS, 4, 2, LEFT_LANE_ROI, 50)
+    # rightCrossing = getPedestrianCrossing(laneAppropiate, GRAY_THRESHOLDS, 4, 2, RIGHT_LANE_ROI, 50)
+    # middleCrossing = getPedestrianCrossing(laneAppropiate, GRAY_THRESHOLDS, 4, 2, MIDDLE_LANE_ROI, 50)
 
-    bothV, bothX, new = getSteerValues([leftLaneLine, rightLaneLine], bothV, bothX)
+    # bothV, bothX, new = getSteerValues([leftLaneLine, rightLaneLine], bothV, bothX)
 
-    roadType, matrix = getRoadType(img, [0,0,0,0], bothV, leftCrossing, rightCrossing, middleCrossing, new)
-    
-
+    # roadType, matrix = getRoadType(img, [0,0,0,0], bothV, leftCrossing, rightCrossing, middleCrossing, new)
 
 
-    # imgur = binaryThresholdImage(laneAppropiate, GRAY_THRESHOLDS)
-    imgur = binaryThresholdImage(img, GREENE_THRESHOLDS)
+
+
+    imgur = binaryThresholdImage(laneAppropiate, GRAY_THRESHOLDS)
+    # imgur = binaryThresholdImage(img, GREENE_THRESHOLDS)
     # imgur = binaryThresholdImage(img, RED_THRESHOLDS)
     # imgur = binaryThresholdImage(img, BLUE_THRESHOLDS)
     # imgur = binaryThresholdImage(img, ROAD_JOINTS_THRESHOLDS)

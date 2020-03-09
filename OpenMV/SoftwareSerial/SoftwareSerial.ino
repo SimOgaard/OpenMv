@@ -1,5 +1,7 @@
 #include <SoftwareSerial.h>
 #include <ArduinoJson.h>
+#include <Servo.h>
+Servo Servo1;
 SoftwareSerial ESPserial(3, 1);
 
 bool LegoGubbar;
@@ -13,6 +15,7 @@ String readString;
 
 void setup() {
   Serial.begin(115200);
+  Servo1.attach(13);
 }
 
 void loop() {
@@ -47,9 +50,10 @@ void loop() {
     int BothV = obj[3];
     int BothX = obj[4];
     
-    Serial.println(" | BothV: "+String(BothV)+" | BothX: "+String(BothX));
+    Serial.println(" | BothV: "+String(1023/180*BothV)+" | BothX: "+String(BothX));
     
     readString="";
+    Servo1.write(int(1023/180*BothV));
   }
 }
 

@@ -1,7 +1,5 @@
 ### TODO:
     # getSteerValues()
-    # transferValues()
-
     # laneAppropiateImage               Copy binary version of image, invertera (not), använd som mask för mörkning. Tanken är att bara det ljusa ska bli mörkare. Fler itterationer? så att det ljusaste blir mörare än det lite ljusa
     #                                   Testa även multipy add subtract divide images, kolla om de gör som ovan om inte bättre
     # Snabbare funktioner               Tex image.clear() "verry fast" till skillnad från drawsquare. Även hur du använder numpy "vertecees" kunde adderas ihop tusen ggr snabbare än for loopar
@@ -9,8 +7,6 @@
     #           tresholds,
     #           osv
     # Yolo                              Få den att funka med copy och lite ram
-    # Yolo dataset                      Fixa Yolo dataset
-    # light sensor to find threshold    Kanske lyckas utan light sensor utan kollar på bilden överlag hur ljus är den?
     # Publice roadtype when roadtypechanging is false only once
 
 ### Biblotek ###
@@ -41,19 +37,23 @@ bothV = 90
 bothX = sensor.width()/2
 matrix = [0, 0, 0, 0]
 skipped = 0
+sampleSize = 0
+servo = 512
+motor = 0
 
 ### Variabler ###
-RED_THRESHOLDS = [(0, 100, 127, 47, 127, -128)]
+RED_THRESHOLDS = [(0, 100, 127, 20, 127, -128)]
 GREENE_THRESHOLDS = [(0, 100, -20, -128, -128, 127)]
 BLUE_THRESHOLDS = [(0, 100, -128, 127, -128, -15)]
-ROAD_JOINTS_THRESHOLDS = [(0, 100, -128, 127, -128, -15)]
-GRAY_THRESHOLDS = [(175, 255)]
+ROAD_JOINTS_THRESHOLDS = [(0, 100, 127, 20, 127, -128)]
+GRAY_THRESHOLDS = [(200, 255)]
 
-ALPHA_DARKEN = 85
+ALPHA_DARKEN = 57
 ROADTYPE_THRESHOLDS = 0.5
 THETA_TILT = 11
 PEDESTRIAN_CROSSING_PIXELS = 2500
 skipAmount = 4
+sampleAmount = 10
 
 LEFT_LANE_ROI = [0, 0, int(sensor.width()/3), sensor.height()]
 RIGHT_LANE_ROI = [int(sensor.width()/1.5), 0, sensor.width(), sensor.height()]
@@ -108,22 +108,49 @@ def getClosestToCenter(object_):
         object = object_[l.index(min(l))]
         return (object.cx(), object.cy())
 
-def getSteerValues(lines_, bothV, bothX):
+def getSteerValues(lines_, bothV_, bothX_, servo_, motor_):
     new = False
     if lines_[0] and lines_[1]:
         new = True
         leftV = lines_[0].theta()+90 if lines_[0].theta() < 90 else abs(lines_[0].theta()-90)
         rightV = lines_[1].theta()+90 if lines_[1].theta() < 90 else abs(lines_[1].theta()-90)
-        bothV = (leftV+rightV) / 2
-        bothX = (lines_[0].x2() + lines_[1].x2())/2 - sensor.width()/2
-    return bothV, bothX, new
+        bothV_ = (leftV+rightV) / 2
+        bothX_ = (lines_[0].x2() + lines_[1].x2())/2 - sensor.width()/2
+        servo_ = 1023/180*(bothV_+bothX_)
+        motor_ = 512-abs(servo_-512)
+
+
+        servo_ = max(min(servo_, 1023), 0)
+        motor_ = max(min(motor_, 1023), 0)
+
+        
+    return bothV_, bothX_, new, servo_, motor_
 
 def getRoadTypeWhen(img_, new_):
     roadJoints = getColoredObjects(img_, ROAD_JOINTS_THRESHOLDS, 500, 4, 2, 5, ALL_ROI)
     return True if len(roadJoints) >= 4 and new_ else False
 
-def getRoadType(img_, roadType_, bothV_, leftCrossing_, rightCrossing_, middleCrossing_, new_, skipped_):
-    if getRoadTypeWhen(img_, new_):
+## Med vägmärken ##
+# def getRoadType(img_, roadType_, bothV_, leftCrossing_, rightCrossing_, middleCrossing_, new_, skipped_):
+#     if getRoadTypeWhen(img_, new_):
+#         roadType_[3] = roadType_[3]+1
+#         if not leftCrossing_ and not rightCrossing_ and middleCrossing_:
+#             roadType_[0] = roadType_[0]+1
+#             roadType_[1] = roadType_[1]+1
+#         else: 
+#             if leftCrossing_ or bothV_ <= 90-THETA_TILT:
+#                 roadType_[0] = roadType_[0]+1
+#             if rightCrossing_ or bothV_ >= 90+THETA_TILT:
+#                 roadType_[1] = roadType_[1]+1
+#             if bothV_ > 90-THETA_TILT and bothV_ < 90+THETA_TILT:
+#                 roadType_[2] = roadType_[2]+1
+#         skipped_ = 0
+#     else:
+#         skipped_ += 1
+#     return roadType_, skipped_
+
+def getRoadType(img_, roadType_, bothV_, leftCrossing_, rightCrossing_, middleCrossing_, sampleSize_):
+    if sampleSize_ <= sampleAmount:
         roadType_[3] = roadType_[3]+1
         if not leftCrossing_ and not rightCrossing_ and middleCrossing_:
             roadType_[0] = roadType_[0]+1
@@ -135,18 +162,26 @@ def getRoadType(img_, roadType_, bothV_, leftCrossing_, rightCrossing_, middleCr
                 roadType_[1] = roadType_[1]+1
             if bothV_ > 90-THETA_TILT and bothV_ < 90+THETA_TILT:
                 roadType_[2] = roadType_[2]+1
-        skipped_ = 0
+        sampleSize_ += 1
     else:
-        skipped_ += 1
-    return roadType_, skipped_
+        sampleSize_ = 0
+    return roadType_, sampleSize_
 
-def lockRoadTypeWhen(roadType_, skipped_, matrix_):
-    if skipped_ > skipAmount and roadType_ != [0, 0, 0, 0]:
+## Med vägmärken ##
+# def lockRoadTypeWhen(roadType_, skipped_, matrix_):
+#     if skipped_ > skipAmount and roadType_ != [0, 0, 0, 0]:
+#         roadType_ = [True if x/roadType_[3] >= ROADTYPE_THRESHOLDS else False for x in roadType_]
+#         matrix_ = roadType_
+#         roadType_ = [0, 0, 0, 0]
+#         skipped_ = 0
+#     return roadType_, skipped_, matrix_
+
+def lockRoadTypeWhen(roadType_, sampleSize_, matrix_):
+    if sampleSize_ == 0:
         roadType_ = [True if x/roadType_[3] >= ROADTYPE_THRESHOLDS else False for x in roadType_]
         matrix_ = roadType_
         roadType_ = [0, 0, 0, 0]
-        skipped_ = 0
-    return roadType_, skipped_, matrix_
+    return roadType_, matrix_
 
 def transferValues(*values_):
     JSON = json.dumps(values_)
@@ -200,11 +235,14 @@ while True:
     rightCrossing = getPedestrianCrossing(laneAppropiate, GRAY_THRESHOLDS, 4, 2, RIGHT_LANE_ROI, 50)
     middleCrossing = getPedestrianCrossing(laneAppropiate, GRAY_THRESHOLDS, 4, 2, MIDDLE_LANE_ROI, 50)
 
-    bothV, bothX, new = getSteerValues([leftLaneLine, rightLaneLine], bothV, bothX)
+    bothV, bothX, new, servo, motor = getSteerValues([leftLaneLine, rightLaneLine], bothV, bothX, servo, motor)
 
-    roadType, skipped = getRoadType(img, roadType, bothV, leftCrossing, rightCrossing, middleCrossing, new, skipped)
-    
-    roadType, skipped, matrix = lockRoadTypeWhen(roadType, skipped, matrix)
+    ## Med vägmärken ##
+    # roadType, skipped = getRoadType(img, roadType, bothV, leftCrossing, rightCrossing, middleCrossing, new, skipped)
+    # roadType, skipped, matrix = lockRoadTypeWhen(roadType, skipped, matrix)
+
+    roadType, sampleSize = getRoadType(img, roadType, bothV, leftCrossing, rightCrossing, middleCrossing, sampleSize)
+    roadType, matrix = lockRoadTypeWhen(roadType, sampleSize, matrix)
 
     # Visuellt
     outlineObjects(img, uraniumRods, (0, 255, 0), 2, False)
@@ -215,6 +253,6 @@ while True:
     drawLine(img, [leftLaneLine, rightLaneLine], (0, 0, 0), 2)
     drawMap(img, [[0,matrix[2],0],[matrix[0],1,matrix[1]],[0,matrix[3],0]], (-1, -1), 5)
 
-    transferValues(legoGubbar, closestObject, matrix, bothV, bothX)
+    transferValues(legoGubbar, closestObject, matrix, servo, motor)
 
-    lcd.display(laneAppropiate)
+    lcd.display(img)
