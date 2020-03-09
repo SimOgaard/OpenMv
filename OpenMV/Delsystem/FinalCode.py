@@ -108,7 +108,7 @@ def getClosestToCenter(object_):
         object = object_[l.index(min(l))]
         return (object.cx(), object.cy())
 
-def getSteerValues(lines_, bothV_, bothX_, servo_, motor_):
+def getSteerValues(lines_, bothV_, bothX_):#, servo_, motor_):
     new = False
     if lines_[0] and lines_[1]:
         new = True
@@ -116,15 +116,15 @@ def getSteerValues(lines_, bothV_, bothX_, servo_, motor_):
         rightV = lines_[1].theta()+90 if lines_[1].theta() < 90 else abs(lines_[1].theta()-90)
         bothV_ = (leftV+rightV) / 2
         bothX_ = (lines_[0].x2() + lines_[1].x2())/2 - sensor.width()/2
-        servo_ = 1023/180*(bothV_+bothX_)
-        motor_ = 512-abs(servo_-512)
+        # servo_ = 1023/180*(bothV_+bothX_)
+        # motor_ = 512-abs(servo_-512)
 
 
-        servo_ = max(min(servo_, 1023), 0)
-        motor_ = max(min(motor_, 1023), 0)
+        # servo_ = max(min(servo_, 1023), 0)
+        # motor_ = max(min(motor_, 1023), 0)
 
         
-    return bothV_, bothX_, new, servo_, motor_
+    return bothV_, bothX_, new#, servo_, motor_
 
 def getRoadTypeWhen(img_, new_):
     roadJoints = getColoredObjects(img_, ROAD_JOINTS_THRESHOLDS, 500, 4, 2, 5, ALL_ROI)
@@ -235,7 +235,8 @@ while True:
     rightCrossing = getPedestrianCrossing(laneAppropiate, GRAY_THRESHOLDS, 4, 2, RIGHT_LANE_ROI, 50)
     middleCrossing = getPedestrianCrossing(laneAppropiate, GRAY_THRESHOLDS, 4, 2, MIDDLE_LANE_ROI, 50)
 
-    bothV, bothX, new, servo, motor = getSteerValues([leftLaneLine, rightLaneLine], bothV, bothX, servo, motor)
+    bothV, bothX, new = getSteerValues([leftLaneLine, rightLaneLine], bothV, bothX)
+    # bothV, bothX, new, servo, motor = getSteerValues([leftLaneLine, rightLaneLine], bothV, bothX, servo, motor)
 
     ## Med vägmärken ##
     # roadType, skipped = getRoadType(img, roadType, bothV, leftCrossing, rightCrossing, middleCrossing, new, skipped)
@@ -253,6 +254,7 @@ while True:
     drawLine(img, [leftLaneLine, rightLaneLine], (0, 0, 0), 2)
     drawMap(img, [[0,matrix[2],0],[matrix[0],1,matrix[1]],[0,matrix[3],0]], (-1, -1), 5)
 
-    transferValues(legoGubbar, closestObject, matrix, servo, motor)
+    transferValues(legoGubbar, closestObject, matrix, bothV, bothX)
+    # transferValues(legoGubbar, closestObject, matrix, servo, motor)
 
     lcd.display(img)
