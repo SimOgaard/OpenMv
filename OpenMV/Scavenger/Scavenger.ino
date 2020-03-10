@@ -13,12 +13,12 @@ Servo SteeringServo;            // Definerar servot
 
 // Variabler //
 String OWNER="A";                                                         // (Sträng) Ändra beroende på vems bil
-unsigned long previousMillis = 0, currentMillis = 0;                          // (Unsigned long) för användningen av millis (pga datatypens storlek)
-const int revRoad = 500;                                                 // (Const int) Längden på en väg
+unsigned long previousMillis = 0, currentMillis = 0;                      // (Unsigned long) för användningen av millis (pga datatypens storlek)
+const int revRoad = 500;                                                  // (Const int) Längden på en väg
 String payload, readString;                                               // (Sträng) Strängar som vi kan Jsonifiera
 int LedState = LOW;                                                       // (Int) Lampans status
-int Rev = 0;
-char c;
+int Rev = 0;                                                              // (Int) antalet revolutions hallelement
+char c;                                                                   // (Char) charaktär som associerar till avläsning av uart rx
 
 // States //
 typedef enum State {                  // Skapar enumeration kallad State
@@ -48,8 +48,8 @@ void onConnectionEstablished() {
     JsonArray& root = JsonBuffer.parseArray(payload);                                                   // Skapar ett jsonobject av datan payload som vi kallar root
     if (root.success() && root[0] == OWNER || root.success() && root[0] == "A" ) {                      // Om ovan lyckas och Jsonobjekten är pointerat till "A" eller "B" (representativ till variabeln "OWNER")
       if (root[1] == 0){                                                                                // root[1] konstanterar uppgiften värdena ör 0 = follow, 1 = left, 2 = right, 3 = drop
-        State = FollowLine;                                                                                
-      } else if (root[1] == 1) {                                                                                
+        State = FollowLine;                                                                             //
+      } else if (root[1] == 1) {                                                                        
         State = Turn;                                                                                
       } else if (root[1] == 2) {                                                                                
         State = Turn;                                                                                
@@ -67,7 +67,7 @@ void setup() {
   attachInterrupt(digitalPinToInterrupt(He), HtoL, FALLING);              // Digitala pin med interuppt till pin "He" funktionen "HtoL" ska köras vid "Falling" högt värde till lågt 
   pinMode(Pw, OUTPUT), pinMode(D1, OUTPUT), pinMode(LED_BUILTIN, OUTPUT); // Konfigurerar pins att bete sig som outputs
   digitalWrite(D1, HIGH);                                                 // Skriver till pin "D1" hög volt (3.3v) 
-  SteeringServo.attach(13);                                                      // Sätter servo pin
+  SteeringServo.attach(13);                                               // Sätter servo pin
   State = Stopped;                                                        // Går till casen Stopped
 }
 

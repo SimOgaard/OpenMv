@@ -31,15 +31,15 @@ sensor.run(1)
 ### Konstanter ###
 ALL_ROI = [0, 0, sensor.width(), sensor.height()]
 YOLO_ROI = [48, 8, 224, 224]
-coordinate = [0, 0]
-roadType = [0, 0, 0, 0]
+# coordinate = [0, 0]
+# roadType = [0, 0, 0, 0]
 bothV = 90
 bothX = sensor.width()/2
 matrix = [0, 0, 0, 0]
-skipped = 0
-sampleSize = 0
-servo = 512
-motor = 0
+# skipped = 0
+# sampleSize = 0
+# servo = 512
+# motor = 0
 
 ### Variabler ###
 RED_THRESHOLDS = [(0, 100, 127, 20, 127, -128)]
@@ -49,11 +49,11 @@ ROAD_JOINTS_THRESHOLDS = [(0, 100, 127, 20, 127, -128)]
 GRAY_THRESHOLDS = [(200, 255)]
 
 ALPHA_DARKEN = 57
-ROADTYPE_THRESHOLDS = 0.5
-THETA_TILT = 11
+# ROADTYPE_THRESHOLDS = 0.5
+THETA_TILT = 10
 PEDESTRIAN_CROSSING_PIXELS = 2500
-skipAmount = 4
-sampleAmount = 10
+# skipAmount = 4
+# sampleAmount = 10
 
 LEFT_LANE_ROI = [0, 0, int(sensor.width()/3), sensor.height()]
 RIGHT_LANE_ROI = [int(sensor.width()/1.5), 0, sensor.width(), sensor.height()]
@@ -107,6 +107,7 @@ def getClosestToCenter(object_):
         l = [math.sqrt((obj.cx()-sensor.width()/2)**2 + (obj.cy()-sensor.height()/2)**2) for obj in object_]
         object = object_[l.index(min(l))]
         return (object.cx(), object.cy())
+    return False
 
 def getSteerValues(lines_, bothV_, bothX_):#, servo_, motor_):
     new = False
@@ -119,18 +120,16 @@ def getSteerValues(lines_, bothV_, bothX_):#, servo_, motor_):
         # servo_ = 1023/180*(bothV_+bothX_)
         # motor_ = 512-abs(servo_-512)
 
-
         # servo_ = max(min(servo_, 1023), 0)
         # motor_ = max(min(motor_, 1023), 0)
 
-        
     return bothV_, bothX_, new#, servo_, motor_
 
-def getRoadTypeWhen(img_, new_):
-    roadJoints = getColoredObjects(img_, ROAD_JOINTS_THRESHOLDS, 500, 4, 2, 5, ALL_ROI)
-    return True if len(roadJoints) >= 4 and new_ else False
-
 ## Med vägmärken ##
+# def getRoadTypeWhen(img_, new_):
+#     roadJoints = getColoredObjects(img_, ROAD_JOINTS_THRESHOLDS, 500, 4, 2, 5, ALL_ROI)
+#     return True if len(roadJoints) >= 4 and new_ else False
+
 # def getRoadType(img_, roadType_, bothV_, leftCrossing_, rightCrossing_, middleCrossing_, new_, skipped_):
 #     if getRoadTypeWhen(img_, new_):
 #         roadType_[3] = roadType_[3]+1
@@ -149,23 +148,39 @@ def getRoadTypeWhen(img_, new_):
 #         skipped_ += 1
 #     return roadType_, skipped_
 
-def getRoadType(img_, roadType_, bothV_, leftCrossing_, rightCrossing_, middleCrossing_, sampleSize_):
-    if sampleSize_ <= sampleAmount:
-        roadType_[3] = roadType_[3]+1
-        if not leftCrossing_ and not rightCrossing_ and middleCrossing_:
-            roadType_[0] = roadType_[0]+1
-            roadType_[1] = roadType_[1]+1
-        else: 
-            if leftCrossing_ or bothV_ <= 90-THETA_TILT:
-                roadType_[0] = roadType_[0]+1
-            if rightCrossing_ or bothV_ >= 90+THETA_TILT:
-                roadType_[1] = roadType_[1]+1
-            if bothV_ > 90-THETA_TILT and bothV_ < 90+THETA_TILT:
-                roadType_[2] = roadType_[2]+1
-        sampleSize_ += 1
-    else:
-        sampleSize_ = 0
-    return roadType_, sampleSize_
+## Sammla x styckna värden ##
+# def getRoadType(img_, roadType_, bothV_, leftCrossing_, rightCrossing_, middleCrossing_, sampleSize_):
+#     if sampleSize_ <= sampleAmount:
+#         roadType_[3] = roadType_[3]+1
+#         if not leftCrossing_ and not rightCrossing_ and middleCrossing_:
+#             roadType_[0] = roadType_[0]+1
+#             roadType_[1] = roadType_[1]+1
+#         else: 
+#             if leftCrossing_ or bothV_ <= 90-THETA_TILT:
+#                 roadType_[0] = roadType_[0]+1
+#             if rightCrossing_ or bothV_ >= 90+THETA_TILT:
+#                 roadType_[1] = roadType_[1]+1
+#             if bothV_ > 90-THETA_TILT and bothV_ < 90+THETA_TILT:
+#                 roadType_[2] = roadType_[2]+1
+#         sampleSize_ += 1
+#     else:
+#         sampleSize_ = 0
+#     return roadType_, sampleSize_
+
+## Skicka över alla värden ##
+def getRoadType(img_, matrix_, bothV_, leftCrossing_, rightCrossing_, middleCrossing_):    
+    matrix_[3] = 1
+    if not leftCrossing_ and not rightCrossing_ and middleCrossing_:
+        matrix_[0] = 1
+        matrix_[1] = 1
+    else: 
+        if leftCrossing_ or bothV_ <= 90-THETA_TILT:
+            matrix_[0] = 1
+        if rightCrossing_ or bothV_ >= 90+THETA_TILT:
+            matrix_[1] = 1
+        if bothV_ > 90-THETA_TILT and bothV_ < 90+THETA_TILT:
+            matrix_[2] = 1
+    return matrix_
 
 ## Med vägmärken ##
 # def lockRoadTypeWhen(roadType_, skipped_, matrix_):
@@ -176,12 +191,13 @@ def getRoadType(img_, roadType_, bothV_, leftCrossing_, rightCrossing_, middleCr
 #         skipped_ = 0
 #     return roadType_, skipped_, matrix_
 
-def lockRoadTypeWhen(roadType_, sampleSize_, matrix_):
-    if sampleSize_ == 0:
-        roadType_ = [True if x/roadType_[3] >= ROADTYPE_THRESHOLDS else False for x in roadType_]
-        matrix_ = roadType_
-        roadType_ = [0, 0, 0, 0]
-    return roadType_, matrix_
+## Sammla x styckna värden ##
+# def lockRoadTypeWhen(roadType_, sampleSize_, matrix_):
+#     if sampleSize_ == 0:
+#         roadType_ = [True if x/roadType_[3] >= ROADTYPE_THRESHOLDS else False for x in roadType_]
+#         matrix_ = roadType_
+#         roadType_ = [0, 0, 0, 0]
+#     return roadType_, matrix_
 
 def transferValues(*values_):
     JSON = json.dumps(values_)
@@ -242,8 +258,12 @@ while True:
     # roadType, skipped = getRoadType(img, roadType, bothV, leftCrossing, rightCrossing, middleCrossing, new, skipped)
     # roadType, skipped, matrix = lockRoadTypeWhen(roadType, skipped, matrix)
 
-    roadType, sampleSize = getRoadType(img, roadType, bothV, leftCrossing, rightCrossing, middleCrossing, sampleSize)
-    roadType, matrix = lockRoadTypeWhen(roadType, sampleSize, matrix)
+    ## Sammla x styckna värden ##
+    # roadType, sampleSize = getRoadType(img, roadType, bothV, leftCrossing, rightCrossing, middleCrossing, sampleSize)
+    # roadType, matrix = lockRoadTypeWhen(roadType, sampleSize, matrix)
+
+    ## Skicka över alla värden ##
+    matrix = getRoadType(img, [0,0,0,0], bothV, leftCrossing, rightCrossing, middleCrossing)
 
     # Visuellt
     outlineObjects(img, uraniumRods, (0, 255, 0), 2, False)
