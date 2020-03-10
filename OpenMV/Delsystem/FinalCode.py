@@ -1,5 +1,4 @@
 ### TODO:
-    # getSteerValues()
     # laneAppropiateImage               Copy binary version of image, invertera (not), använd som mask för mörkning. Tanken är att bara det ljusa ska bli mörkare. Fler itterationer? så att det ljusaste blir mörare än det lite ljusa
     #                                   Testa även multipy add subtract divide images, kolla om de gör som ovan om inte bättre
     # Snabbare funktioner               Tex image.clear() "verry fast" till skillnad från drawsquare. Även hur du använder numpy "vertecees" kunde adderas ihop tusen ggr snabbare än for loopar
@@ -7,7 +6,7 @@
     #           tresholds,
     #           osv
     # Yolo                              Få den att funka med copy och lite ram
-    # Publice roadtype when roadtypechanging is false only once
+    # uh
 
 ### Biblotek ###
 import sensor, lcd, math, json
