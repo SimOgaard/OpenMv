@@ -217,7 +217,7 @@ def drawLine(img_, line_, color_, thickness_):
         if lines:
             img_.draw_line(lines.line(), color_, thickness_)
 
-def drawMap(img_, matrix_, cords_, scale_):
+def drawMap(img_, matrix_, scale_):
     x, y = 0, 0
     for amount1, row in enumerate(matrix_):
         for amount2, col in enumerate(row):
@@ -271,7 +271,7 @@ while True:
 
     markPoint(img, closestObject, 3, (255, 255, 0), 1, True)
     drawLine(img, [leftLaneLine, rightLaneLine], (0, 0, 0), 2)
-    drawMap(img, [[0,matrix[2],0],[matrix[0],1,matrix[1]],[0,matrix[3],0]], (-1, -1), 5)
+    drawMap(img, [[0,matrix[2],0],[matrix[0],1,matrix[1]],[0,matrix[3],0]], 5)
 
     transferValues(legoGubbar, closestObject, matrix, bothV, bothX)
     # transferValues(legoGubbar, closestObject, matrix, servo, motor)

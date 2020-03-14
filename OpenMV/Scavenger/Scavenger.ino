@@ -14,16 +14,22 @@ Servo SteeringServo;            // Definerar servot
 // Variabler //
 String OWNER="A";                                                         // (Sträng) Ändra beroende på vems bil
 unsigned long previousMillis = 0, currentMillis = 0;                      // (Unsigned long) för användningen av millis (pga datatypens storlek)
-const int revRoad = 500;                                                  // (Const int) Längden på en väg
+const int revRoad = 500, maxPwm = 1023, minPwm = 0;                       // (Const int) Längden på en väg
 String payload, readString;                                               // (Sträng) Strängar som vi kan Jsonifiera
 int LedState = LOW;                                                       // (Int) Lampans status
-int Rev = 0;                                                              // (Int) antalet revolutions hallelement
+int Rev = 0, Pwm = 0;                                                     // (Int) antalet revolutions hallelement
 char c;                                                                   // (Char) charaktär som associerar till avläsning av uart rx
+StaticJsonBuffer<256> jsonBuffer;                                         //
+JsonArray& obj = jsonBuffer.parseArray("[0, 0, [0,0,0,0], 0, 0]");        //
+int matrix[]={0,0,0,0};
+int rotation=0;
+int cords[]={0,0};
 
 // States //
-typedef enum State {                  // Skapar enumeration kallad State
-  Stopped, FollowLine, Claw, Dispose  // Alla cases
+typedef enum States {                         // Skapar enumeration kallad State
+  Stopped, FollowLine, Claw, Dispose, Turn    // Alla cases
 };
+States State;
 
 // Mqtt //
 void onConnectionEstablished();                 // Krävs för att bibloteket ska fungera när denna har körts klart är du säker på att du är ansluten
@@ -35,7 +41,7 @@ EspMQTTClient client(                           // Alla parametrar för att ansl
   1883,                                         // Mqtt port
   "simon.ogaardjozic@abbindustrigymnasium.se",  // Namn
   "scavenger",                                  // Lösen
-  String("scavenger"+OWNER),                    // Client Namn
+  "scavengerA",                                 // Client Namn
   onConnectionEstablished,
   true,
   true
@@ -80,7 +86,8 @@ void loop() {
   switch (State) {
     case Stopped:
       Blink(500);
-      continue;
+      State = Stopped;
+      break;
 
     case FollowLine:
       if (SerialData()) {
@@ -94,28 +101,36 @@ void loop() {
           analogWrite(Pw, obj[4]);
         }
       }
-
+      //stoppedClear();
       if (Rev >= revRoad) {
-        sendJSON(String("[0,0,0,0]"))
+        Serial.println(Rev);
+
+        
+        
+        sendJSON(String("[\""+OWNER+"\", ["+String(matrix[0])+", "+String(matrix[1])+", "+String(matrix[2])+", "+String(matrix[3])+"]]");
         stoppedClear();
+        break;
       }
-      continue;
+      State = FollowLine;
+      break;
 
     case Claw:
-      if DroppItem(GotItem()){
+      if (DroppItem(GotItem())){
         State = FollowLine;
+        break;
       } else if (SerialData()) {
         // obj[1] är cords för objektet
         // ta upp objektet
       }
-      continue;
+      State = Claw;
+      break;
     
     case Dispose:
       // servo.write(lol);
       // delay(lamao);
       // servo.write(lul);
       stoppedClear();
-      continue;
+      break;
   }
 }
 
@@ -154,19 +169,22 @@ float speedControll(){
 
 // Funktion "Skicka data" //
 void sendJSON(String JSON){
-  client.publish("simon.ogaardjozic@abbindustrigymnasium.se/Scavenger"+OWNER, JSON);
+  client.publish("simon.ogaardjozic@abbindustrigymnasium.se/Scavenger", JSON);
 }
 
 // Funktion "stoppedClear" //
 void stoppedClear(){
-  Rev = 0;          // Reset Values
-  State = Stopped;  // Go to state
+  matrix[0] = 0;      // Reset Values
+  matrix[1] = 0;
+  matrix[2] = 0;
+  matrix[3] = 0;      //
+  Rev = 0;            //   - || -
+  State = Stopped;    // Go to state
 }
 
 // Funktion "SerialData" //
 boolean SerialData(){
   while (Serial.available()) {
-    NewData = true;
     delay(1);
     c = Serial.read();
     readString += c; 
@@ -174,6 +192,10 @@ boolean SerialData(){
   if (readString.length()) {
     StaticJsonBuffer<256> jsonBuffer;
     JsonArray& obj = jsonBuffer.parseArray(readString);
+    matrix[0] += obj[2][0].as<int>();
+    matrix[1] += obj[2][1].as<int>();
+    matrix[2] += obj[2][2].as<int>();
+    matrix[3] += obj[2][3].as<int>();
     Serial.println(readString);
     readString="";
     return true;
@@ -186,15 +208,15 @@ boolean DroppItem(boolean GotItem){
   while (GotItem) {
     //Hårdkodad stäng klon, släpp över flak och reset servos
   }
-  return GotItem
+  return GotItem;
 }
 
 // Funktion "GotItem" //
 boolean GotItem(){
-  if (Avstånd<=fixedAvstånd){ //123
-    return true    
-  }
-  return false
+//  if (Avstånd<=fixedAvstånd){ //123
+//    return true;
+//  }
+  return false;
 }
 
 // Funktion "Blink" //
@@ -208,7 +230,13 @@ void Blink(int BlinkTime) {
   }
 }
 
+void AddArrays(int array_len, int array1[], int array2[], int result[]){
+   for (int i = 0; i < array_len; ++i){
+     result[i] = array1[i] + array2[i];
+   }
+}
+
 // Funktion "Interupt" //
-ICACHE_RAM_ATTR void HtoL(){
-  Rev++;                  // Lägger på 1 på variabeln Rev
+ICACHE_RAM_ATTR void HtoL(){  // 
+  Rev++;                      // Lägger till 1 på variabeln Rev
 }
