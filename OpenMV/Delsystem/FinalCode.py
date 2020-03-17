@@ -76,7 +76,7 @@ def getColoredObjects(img_, threshold_, pixelthreshold_, xstride_, ystride_, mar
 
 def getYoloObjects(img_):
     yoloObj = kpu.run_yolo2(task, img_.copy(roi=YOLO_ROI, copy_to_fb=False).to_rgb565(copy=False))
-    return True if yoloObj else False
+    return 1 if yoloObj else 0
 
 def laneAppropriateImg(img_, roi_):
     img_copy = img_.to_grayscale(copy = True, rgb_channel = (0/1/2))
@@ -106,7 +106,7 @@ def getClosestToCenter(object_):
         l = [math.sqrt((obj.cx()-sensor.width()/2)**2 + (obj.cy()-sensor.height()/2)**2) for obj in object_]
         object = object_[l.index(min(l))]
         return (object.cx(), object.cy())
-    return False
+    return 0
 
 def getSteerValues(lines_, bothV_, bothX_):#, servo_, motor_):
     new = False
@@ -135,7 +135,7 @@ def getSteerValues(lines_, bothV_, bothX_):#, servo_, motor_):
 #         if not leftCrossing_ and not rightCrossing_ and middleCrossing_:
 #             roadType_[0] = roadType_[0]+1
 #             roadType_[1] = roadType_[1]+1
-#         else: 
+#         else:
 #             if leftCrossing_ or bothV_ <= 90-THETA_TILT:
 #                 roadType_[0] = roadType_[0]+1
 #             if rightCrossing_ or bothV_ >= 90+THETA_TILT:
@@ -154,7 +154,7 @@ def getSteerValues(lines_, bothV_, bothX_):#, servo_, motor_):
 #         if not leftCrossing_ and not rightCrossing_ and middleCrossing_:
 #             roadType_[0] = roadType_[0]+1
 #             roadType_[1] = roadType_[1]+1
-#         else: 
+#         else:
 #             if leftCrossing_ or bothV_ <= 90-THETA_TILT:
 #                 roadType_[0] = roadType_[0]+1
 #             if rightCrossing_ or bothV_ >= 90+THETA_TILT:
@@ -167,12 +167,12 @@ def getSteerValues(lines_, bothV_, bothX_):#, servo_, motor_):
 #     return roadType_, sampleSize_
 
 ## Skicka över alla värden ##
-def getRoadType(img_, matrix_, bothV_, leftCrossing_, rightCrossing_, middleCrossing_):    
+def getRoadType(img_, matrix_, bothV_, leftCrossing_, rightCrossing_, middleCrossing_):
     matrix_[3] = 1
     if not leftCrossing_ and not rightCrossing_ and middleCrossing_:
         matrix_[0] = 1
         matrix_[1] = 1
-    else: 
+    else:
         if leftCrossing_ or bothV_ <= 90-THETA_TILT:
             matrix_[0] = 1
         if rightCrossing_ or bothV_ >= 90+THETA_TILT:
@@ -239,7 +239,7 @@ while True:
 
     # # Yolo
     # legoGubbar = getYoloObjects(img)
-    legoGubbar = False
+    legoGubbar = 0
 
     # Väg
     laneAppropiate = laneAppropriateImg(img, [allObjects])
@@ -272,6 +272,8 @@ while True:
     markPoint(img, closestObject, 3, (255, 255, 0), 1, True)
     drawLine(img, [leftLaneLine, rightLaneLine], (0, 0, 0), 2)
     drawMap(img, [[0,matrix[2],0],[matrix[0],1,matrix[1]],[0,matrix[3],0]], 5)
+
+    matrix=[0,1,0,1]
 
     transferValues(legoGubbar, closestObject, matrix, bothV, bothX)
     # transferValues(legoGubbar, closestObject, matrix, servo, motor)

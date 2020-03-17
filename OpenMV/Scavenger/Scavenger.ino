@@ -22,8 +22,8 @@ char c;                                                                   // (Ch
 StaticJsonBuffer<256> jsonBuffer;                                         //
 JsonArray& obj = jsonBuffer.parseArray("[0, 0, [0,0,0,0], 0, 0]");        //
 int matrix[]={0,0,0,0};
-int rotation=0;
-int cords[]={0,0};
+// int rotation=0;
+// int cords[]={0,0};
 
 // States //
 typedef enum States {                         // Skapar enumeration kallad State
@@ -53,6 +53,7 @@ void onConnectionEstablished() {
     StaticJsonBuffer<500> JsonBuffer;                                                                   // Skapar en buffer, hur mycket minne som vårt blivand jsonobject får använda
     JsonArray& root = JsonBuffer.parseArray(payload);                                                   // Skapar ett jsonobject av datan payload som vi kallar root
     if (root.success() && root[0] == OWNER || root.success() && root[0] == "A" ) {                      // Om ovan lyckas och Jsonobjekten är pointerat till "A" eller "B" (representativ till variabeln "OWNER")
+      Rev = 0;
       if (root[1] == 0){                                                                                // root[1] konstanterar uppgiften värdena ör 0 = follow, 1 = left, 2 = right, 3 = drop
         State = FollowLine;                                                                             //
       } else if (root[1] == 1) {                                                                        
@@ -95,6 +96,7 @@ void loop() {
           Blink(1000);
         } else if (obj[1]) { // är inte 0 eller 1 utan 0 eller [123,32]
           State = Claw;
+          break;
         } else {
           // use obj[3] and obj[4] and rpm to steer and speedup
           SteeringServo.write(int(obj[3]));
@@ -103,11 +105,7 @@ void loop() {
       }
       //stoppedClear();
       if (Rev >= revRoad) {
-        Serial.println(Rev);
-
-        
-        
-        sendJSON(String("[\""+OWNER+"\", ["+String(matrix[0])+", "+String(matrix[1])+", "+String(matrix[2])+", "+String(matrix[3])+"]]");
+        sendJSON(String("[\""+OWNER+"\", ["+String(matrix[0])+", "+String(matrix[1])+", "+String(matrix[2])+", "+String(matrix[3])+"]]"));
         stoppedClear();
         break;
       }
@@ -175,9 +173,9 @@ void sendJSON(String JSON){
 // Funktion "stoppedClear" //
 void stoppedClear(){
   matrix[0] = 0;      // Reset Values
-  matrix[1] = 0;
-  matrix[2] = 0;
-  matrix[3] = 0;      //
+  matrix[1] = 0;      //   - || -
+  matrix[2] = 0;      //   - || -
+  matrix[3] = 0;      //   - || -
   Rev = 0;            //   - || -
   State = Stopped;    // Go to state
 }
@@ -228,12 +226,6 @@ void Blink(int BlinkTime) {
     LedState = !LedState;                         //    "Nottar Ledstate", sätter LedState till motsatta värdet det var innan
     digitalWrite(LED_BUILTIN, LedState);          //    Skriver till inbyggda led lampan LedState (3.3v eller 0v) 
   }
-}
-
-void AddArrays(int array_len, int array1[], int array2[], int result[]){
-   for (int i = 0; i < array_len; ++i){
-     result[i] = array1[i] + array2[i];
-   }
 }
 
 // Funktion "Interupt" //
