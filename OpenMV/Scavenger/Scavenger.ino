@@ -35,8 +35,8 @@ States State;
 void onConnectionEstablished();                 // Krävs för att bibloteket ska fungera när denna har körts klart är du säker på att du är ansluten
 
 EspMQTTClient client(                           // Alla parametrar för att anslutningen ska funka, ip, namn, lösen osv
-  "ABB_Indgym_Guest",                           // SSD
-  "Welcome2abb",                                // SSD lösen
+  "Tele2Gateway484C",                           // SSD (ABB_Indgym_Guest)
+  "2huaq8hp",                                // SSD lösen (Welcome2abb)
   "maqiatto.com",                               // Mqtt ip
   1883,                                         // Mqtt port
   "simon.ogaardjozic@abbindustrigymnasium.se",  // Namn

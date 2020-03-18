@@ -167,18 +167,20 @@ def getSteerValues(lines_, bothV_, bothX_):#, servo_, motor_):
 #     return roadType_, sampleSize_
 
 ## Skicka över alla värden ##
+# 0, 1, 2, 3
+# 3, 1, 0, 2
 def getRoadType(img_, matrix_, bothV_, leftCrossing_, rightCrossing_, middleCrossing_):
-    matrix_[3] = 1
+    matrix_[2] = 1
     if not leftCrossing_ and not rightCrossing_ and middleCrossing_:
-        matrix_[0] = 1
+        matrix_[3] = 1
         matrix_[1] = 1
     else:
         if leftCrossing_ or bothV_ <= 90-THETA_TILT:
-            matrix_[0] = 1
+            matrix_[3] = 1
         if rightCrossing_ or bothV_ >= 90+THETA_TILT:
             matrix_[1] = 1
         if bothV_ > 90-THETA_TILT and bothV_ < 90+THETA_TILT:
-            matrix_[2] = 1
+            matrix_[0] = 1
     return matrix_
 
 ## Med vägmärken ##
@@ -271,9 +273,9 @@ while True:
 
     markPoint(img, closestObject, 3, (255, 255, 0), 1, True)
     drawLine(img, [leftLaneLine, rightLaneLine], (0, 0, 0), 2)
-    drawMap(img, [[0,matrix[2],0],[matrix[0],1,matrix[1]],[0,matrix[3],0]], 5)
+    drawMap(img, [[0,matrix[0],0],[matrix[3],1,matrix[1]],[0,matrix[2],0]], 5)
 
-    matrix=[0,1,0,1]
+    matrix=[0,1,1,0]
 
     transferValues(legoGubbar, closestObject, matrix, bothV, bothX)
     # transferValues(legoGubbar, closestObject, matrix, servo, motor)
