@@ -68,6 +68,7 @@ function onConnectionLost(responseObject) { // Called when the client loses its 
     if (responseObject.errorCode !== 0) {
         document.getElementById("messages").innerHTML += '<span>ERROR: ' + + responseObject.errorMessage + '</span><br/>';
     }
+    document.getElementById("Button").innerHTML = '<button onclick="startConnect()">Connect</button>'
 }
 
 function init_order(){
