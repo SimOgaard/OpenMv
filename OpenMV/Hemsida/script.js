@@ -90,17 +90,19 @@ function onMessageArrived(message) {    // Called when a message arrives
         let theway_order;
         let theway;
         let order;
+        var javascriptbighomo = [car_coord[0],car_coord[1]];
 
         car_road_array = get_json_data(message.payloadString);
         car = car_road_array[0];
         road_array = car_road_array[1];
-
+        console.log("1",theway, order, car_coord);
         road_image = pick_image(road_array);
-        theway_order = pick_way(road_array);
+        theway_order = pick_way(road_array, javascriptbighomo, tile_rotation);
         theway = theway_order[0];
         order = theway_order[1];
+        console.log("2",theway, order, car_coord);
         update_map(road_image, tile_rotation, car_coord)
-        
+        console.log("3",theway, order, car_coord);
         car_coord = calculate_car_coords(tile_rotation, theway, car_coord);
         tile_rotation = calculate_rotation(tile_rotation, theway);        
 
@@ -155,25 +157,49 @@ function pick_image(road_array){
     return img;
 }
 
-function pick_way(road_array){
-    let road_array_ = road_array;
-    let order;
-    let theway
+function pick_way(road_array, car_coord_, tile_rotation){
 
-    if (road_array_.reduce((a, b) => a + b, 0) == 2){
-        road_array_[2] = 0;
-        theway = road_array_.findIndex(element => element == 1);
+    var road_array;
+    var car_coord_;
+    var tile_rotation;
+    var order;
+    var theway;
+
+    if (road_array.reduce((a, b) => a + b, 0) == 2){
+        road_array[2] = 0;
+        theway = road_array.findIndex(element => element == 1);
         order = new Paho.MQTT.Message('["A", 0]');
         order.destinationName = "simon.ogaardjozic@abbindustrigymnasium.se/Scavenger";
+        return [theway, order];
+    } else {
+        var indexes = [], i;
+        for (i=0; i<road_array.length; i++){
+            if (road_array[i] == 1){
+                var javascriptbighomo2 = [car_coord_[0],car_coord_[1]];
+                var car_coord_test = calculate_car_coords(tile_rotation, i, javascriptbighomo2);
+                if (car_coord_test[0] >= 0 && car_coord_test[0] < map_dimensions[0] && car_coord_test[1] >= 0 && car_coord_test[1] < map_dimensions[1] && document.getElementById("img" + car_coord_test[0] + "," + car_coord_test[1]).src.slice(-22) == "Images/PNG/missing.png"){
+                    order = choose_order(i);
+                    return [i, order];
+                }
+                indexes.push(i);
+            }
+        }
+        i = indexes[Math.floor(Math.random()*indexes.length)];
+        order = choose_order(i);
+        return [theway, order];
     }
-    return [theway, order];
+}
 
-    // if (!road_array){
-    //     message = new Paho.MQTT.Message('["A", 0]');
-    //     message.destinationName = topic;
-    //     client.send(message);
-    // }
-
+function choose_order(i){
+    if (i == 0){
+        order = new Paho.MQTT.Message('["A", 0]');
+    } else if (i == 1){
+        order = new Paho.MQTT.Message('["A", 1]');
+    } else {
+        order = new Paho.MQTT.Message('["A", 2]');
+    }
+    order.destinationName = "simon.ogaardjozic@abbindustrigymnasium.se/Scavenger";
+    return order;
 }
 
 function update_map(img_name, tile_rotation, car_coord){
@@ -198,7 +224,11 @@ function calculate_rotation(tile_rotation, theway){
     return tile_rotation;
 }
 
-function calculate_car_coords(tile_rotation, theway, car_coord){
+function calculate_car_coords(tile_rotation, theway, car_coord_){
+    var car_coord_;
+    var theway;
+    var tile_rotation;
+
     for (x=0; x<tile_rotation/90; x++){
         theway+=1
         if (theway>3){
@@ -207,14 +237,14 @@ function calculate_car_coords(tile_rotation, theway, car_coord){
     }
 
     if (theway==0){
-        car_coord[1]++;
+        car_coord_[1]++;
     } else if (theway==1){
-        car_coord[0]++;
+        car_coord_[0]++;
     } else if (theway==2){
-        car_coord[1]--;
+        car_coord_[1]--;
     } else{
-        car_coord[0]--;
+        car_coord_[0]--;
     }
 
-    return car_coord;
+    return car_coord_;
 }
