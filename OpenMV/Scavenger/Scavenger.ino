@@ -57,9 +57,9 @@ void onConnectionEstablished() {
       if (root[1] == 0){                                                                                // root[1] konstanterar uppgiften värdena ör 0 = follow, 1 = left, 2 = right, 3 = drop
         State = FollowLine;                                                                             //
       } else if (root[1] == 1) {                                                                        
-        State = Turn;                                                                                
+        State = TurnRight;                                                                                
       } else if (root[1] == 2) {                                                                                
-        State = Turn;                                                                                
+        State = TurnLeft;                                                                                
       } else if (root[1] == 3) {
         State = Dispose;
       }

@@ -275,7 +275,7 @@ while True:
     drawLine(img, [leftLaneLine, rightLaneLine], (0, 0, 0), 2)
     drawMap(img, [[0,matrix[0],0],[matrix[3],1,matrix[1]],[0,matrix[2],0]], 5)
 
-    matrix=[0,1,1,0]
+    matrix=[1,0,1,1]
 
     transferValues(legoGubbar, closestObject, matrix, bothV, bothX)
     # transferValues(legoGubbar, closestObject, matrix, servo, motor)
