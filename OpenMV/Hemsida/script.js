@@ -170,9 +170,10 @@ function pick_way(road_array, car_coord_, tile_rotation){
     var tile_rotation;
     var order;
     var theway;
+    
+    road_array[2] = 0;
 
-    if (road_array.reduce((a, b) => a + b, 0) == 2){
-        road_array[2] = 0;
+    if (road_array.reduce((a, b) => a + b, 0) == 1){
         theway = road_array.findIndex(element => element == 1);
         order = new Paho.MQTT.Message('["A", 0]');
         order.destinationName = "simon.ogaardjozic@abbindustrigymnasium.se/Scavenger";
@@ -183,26 +184,24 @@ function pick_way(road_array, car_coord_, tile_rotation){
             if (road_array[i] == 1){
                 var javascriptbighomo2 = [car_coord_[0],car_coord_[1]];
                 var car_coord_test = calculate_car_coords(tile_rotation, i, javascriptbighomo2);
-                if (car_coord_test[0] >= 0 && car_coord_test[0] < map_dimensions[0] && car_coord_test[1] >= 0 && car_coord_test[1] < map_dimensions[1] && document.getElementById("img" + car_coord_test[0] + "," + car_coord_test[1]).src.slice(-22) == "Images/PNG/missing.png"){
-                    update_map("Images/PNG/car.png", 0, car_coord_test);
-                    order = choose_order(i);
-                    return [i, order];
+                if (car_coord_test[0] >= 0 && car_coord_test[0] < map_dimensions[0] && car_coord_test[1] >= 0 && car_coord_test[1] < map_dimensions[1]){
+                    indexes.push(i);
+                    if (document.getElementById("img" + car_coord_test[0] + "," + car_coord_test[1]).src.slice(-22) == "Images/PNG/missing.png"){
+                        update_map("Images/PNG/car.png", 0, car_coord_test);
+                        order = choose_order(i);
+                        return [i, order];
+                    }
                 }
-                indexes.push(i);
             }
         }
+        
         var javascriptbighomo3 = [car_coord_[0],car_coord_[1]];
-        while (true){
-            var x = indexes[Math.floor(Math.random()*indexes.length)];
-            var car_coord_test = calculate_car_coords(tile_rotation, x, javascriptbighomo3);
-            console.log(indexes, car_coord_test, tile_rotation, x, javascriptbighomo3, car_coord_, Math.floor(Math.random()*indexes.length));
-            if (car_coord_test[0] >= 0 && car_coord_test[0] < map_dimensions[0] && car_coord_test[1] >= 0 && car_coord_test[1] < map_dimensions[1]){
-                update_map("Images/PNG/car.png", 0, car_coord_test);
-                order = choose_order(x);
-                return [x, order];
-            }
-        }
-        console.log("YOU SAID WE DO NOT NEED TO BACK");
+        var x = indexes[Math.floor(Math.random()*indexes.length)];
+        var car_coord_test = calculate_car_coords(tile_rotation, x, javascriptbighomo3);
+        console.log(indexes, car_coord_test, tile_rotation, x, javascriptbighomo3, car_coord_, Math.floor(Math.random()*indexes.length));
+        update_map("Images/PNG/car.png", 0, car_coord_test);
+        order = choose_order(x);
+        return [x, order];
     }
 }
 
