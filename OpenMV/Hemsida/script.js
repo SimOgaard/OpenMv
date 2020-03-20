@@ -1,3 +1,9 @@
+// TODO:
+    // välja rotation och startkordinat på bilarna
+    // fixa random val av väg
+    // placera en bil där den är in real time, om vi säger åt den att åka till kordinat (whatever de fuc) placera en bil där
+
+
 let map_dimensions = [4, 4];
 let car_coord = [0, 3];
 let tile_rotation = 0;
@@ -178,15 +184,25 @@ function pick_way(road_array, car_coord_, tile_rotation){
                 var javascriptbighomo2 = [car_coord_[0],car_coord_[1]];
                 var car_coord_test = calculate_car_coords(tile_rotation, i, javascriptbighomo2);
                 if (car_coord_test[0] >= 0 && car_coord_test[0] < map_dimensions[0] && car_coord_test[1] >= 0 && car_coord_test[1] < map_dimensions[1] && document.getElementById("img" + car_coord_test[0] + "," + car_coord_test[1]).src.slice(-22) == "Images/PNG/missing.png"){
+                    update_map("Images/PNG/car.png", 0, car_coord_test);
                     order = choose_order(i);
                     return [i, order];
                 }
                 indexes.push(i);
             }
         }
-        i = indexes[Math.floor(Math.random()*indexes.length)];
-        order = choose_order(i);
-        return [theway, order];
+        var javascriptbighomo3 = [car_coord_[0],car_coord_[1]];
+        while (true){
+            var x = indexes[Math.floor(Math.random()*indexes.length)];
+            var car_coord_test = calculate_car_coords(tile_rotation, x, javascriptbighomo3);
+            console.log(indexes, car_coord_test, tile_rotation, x, javascriptbighomo3, car_coord_, Math.floor(Math.random()*indexes.length));
+            if (car_coord_test[0] >= 0 && car_coord_test[0] < map_dimensions[0] && car_coord_test[1] >= 0 && car_coord_test[1] < map_dimensions[1]){
+                update_map("Images/PNG/car.png", 0, car_coord_test);
+                order = choose_order(x);
+                return [x, order];
+            }
+        }
+        console.log("YOU SAID WE DO NOT NEED TO BACK");
     }
 }
 
