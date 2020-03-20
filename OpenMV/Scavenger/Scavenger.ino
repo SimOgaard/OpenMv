@@ -112,6 +112,17 @@ void loop() {
       State = FollowLine;
       break;
 
+    case TurnRight:
+      // hårdkoda turn sedan gå till follow line?
+      State = FollowLine;
+      break;
+
+    case TurnLeft:
+      // hårdkoda turn sedan gå till follow line?
+      State = FollowLine;
+      break;
+    
+
     case Claw:
       if (DroppItem(GotItem())){
         State = FollowLine;
