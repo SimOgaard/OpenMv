@@ -129,7 +129,7 @@ void loop() {
         break;
       } else if (SerialData()) {
         // obj[1] är cords för objektet
-        // ta upp objektet
+        // ta upp objektet 
       }
       State = Claw;
       break;
