@@ -194,6 +194,9 @@ function pick_way(road_array, car_coord_, tile_rotation){
                 }
             }
         }
+        if (!indexes.length){
+            console.log("You lied!");
+        }
         var javascriptbighomo3 = [car_coord_[0],car_coord_[1]];
         var x = indexes[Math.floor(Math.random()*indexes.length)];
         var car_coord_test = calculate_car_coords(tile_rotation, x, javascriptbighomo3);
