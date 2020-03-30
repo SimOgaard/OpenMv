@@ -119,14 +119,19 @@ function onMessageArrived(message) {    // Called when a message arrives
 }
 
 function get_json_data(JSON_DATA){
-    
+    let road_probability = 0.7
     let JSON_array = JSON.parse(JSON_DATA);
     let JSON_road_type = JSON_array[1];
     let road_array = [];
     
     for(i = 0; i < JSON_road_type.length; i++) {
         let probability = JSON_road_type[i]/JSON_road_type[2];
-        road_array.push(parseInt(probability + 0.5));
+        if (probability >= road_probability){
+            road_array.push(1);           
+        }else{
+            road_array.push(0);
+        }
+        // road_array.push(parseInt(probability + 0.5));
     }
 
     return [JSON_array[0], road_array];
@@ -175,6 +180,12 @@ function pick_way(road_array, car_coord_, tile_rotation){
 
     if (road_array.reduce((a, b) => a + b, 0) == 1){
         theway = road_array.findIndex(element => element == 1);
+        var javascriptbighomo2 = [car_coord_[0],car_coord_[1]];
+        var car_coord_test = calculate_car_coords(tile_rotation, theway, javascriptbighomo2);
+        if (car_coord_test[0] >= 0 && car_coord_test[0] < map_dimensions[0] && car_coord_test[1] >= 0 && car_coord_test[1] < map_dimensions[1]){
+            console.log("You lied!");
+        }
+        update_map("Images/PNG/car.png", 0, car_coord_test);
         order = new Paho.MQTT.Message('["A", 0]');
         order.destinationName = "simon.ogaardjozic@abbindustrigymnasium.se/Scavenger";
         return [theway, order];
@@ -182,10 +193,13 @@ function pick_way(road_array, car_coord_, tile_rotation){
         var indexes = [], i;
         for (i=0; i<road_array.length; i++){
             if (road_array[i] == 1){
-                var javascriptbighomo2 = [car_coord_[0],car_coord_[1]];
-                var car_coord_test = calculate_car_coords(tile_rotation, i, javascriptbighomo2);
+                var javascriptbighomo3 = [car_coord_[0],car_coord_[1]];
+                var car_coord_test = calculate_car_coords(tile_rotation, i, javascriptbighomo3);
                 if (car_coord_test[0] >= 0 && car_coord_test[0] < map_dimensions[0] && car_coord_test[1] >= 0 && car_coord_test[1] < map_dimensions[1]){
+
+                    // account for two coords that are not connected
                     indexes.push(i);
+                    
                     if (document.getElementById("img" + car_coord_test[0] + "," + car_coord_test[1]).src.slice(-22) == "Images/PNG/missing.png"){
                         update_map("Images/PNG/car.png", 0, car_coord_test);
                         order = choose_order(i);
