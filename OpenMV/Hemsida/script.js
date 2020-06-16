@@ -7,6 +7,7 @@
 let map_dimensions = [4, 4];
 let car_coord = [0, 3];
 let tile_rotation = 0;
+let clientID = "clientID_" + parseInt(Math.random() * 100); // Generate a random client ID
 
 window.onload = function() {
     var y_container = document.getElementById("map_container");
@@ -23,8 +24,6 @@ window.onload = function() {
 }
 
 function startConnect() {
-    clientID = "clientID_" + parseInt(Math.random() * 100); // Generate a random client ID
-
     host = "maqiatto.com";                                  // Fetch the hostname/IP address and port number from the form
     port = 8883;
     username = "simon.ogaardjozic@abbindustrigymnasium.se";
@@ -46,7 +45,6 @@ function startConnect() {
     });
 
     document.getElementById("Button").innerHTML = '<button onclick="startDisconnect()">Disconnect</button>'
-
 }
 
 function startDisconnect() {
@@ -57,7 +55,7 @@ function startDisconnect() {
 
 function onFail() {
     document.getElementById("messages").innerHTML += '<span>ERROR: Connection to: ' + host + ' on port: ' + port + ' failed.</span><br/>'
-}  
+}
 
 function onConnect() {
     topic = "simon.ogaardjozic@abbindustrigymnasium.se/Scavenger";  // Fetch the MQTT topic from the form
