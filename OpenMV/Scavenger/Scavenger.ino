@@ -26,8 +26,8 @@ int matrix[]={0,0,0,0};
 // int cords[]={0,0};
 
 // States //
-typedef enum States {                         // Skapar enumeration kallad State
-  Stopped, FollowLine, Claw, Dispose, Turn    // Alla cases
+typedef enum States {                                       // Skapar enumeration kallad State
+  Stopped, FollowLine, Claw, Dispose, TurnRight, TurnLeft   // Alla cases
 };
 States State;
 
