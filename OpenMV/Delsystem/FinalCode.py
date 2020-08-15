@@ -6,7 +6,7 @@
     #           tresholds,
     #           osv
     # Yolo                              Få den att funka med copy och lite ram
-    # uh
+    # uhh
 
 ### Biblotek ###
 import sensor, lcd, math, json, gc
